@@ -1,4 +1,4 @@
 // Pega aquí la URL /exec del motor (Apps Script → Implementar → Administrar implementaciones → App web)
 window.APP_CONFIG = {
-  API_URL: 'PEGAR_AQUI_LA_URL_EXEC'
+  API_URL: 'https://script.google.com/macros/s/AKfycbwGRBEGCuc1CmXUplZlwXUNr5GJNHANNdigQqcSqqWTPyVWlZPXFvOw-aFXapkuW8R3Dg/exec'
 };
