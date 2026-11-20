@@ -46,6 +46,23 @@
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre;
     document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   }
+  var OJO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var OJO_NO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.8 10.8 0 0 1 12 19c-7 0-11-7-11-7a19.8 19.8 0 0 1 5.1-5.9M9.9 4.2A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a19.9 19.9 0 0 1-2.2 3.3M14.1 14.1a3 3 0 1 1-4.2-4.2"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  /** Campo de contraseña con botón de ojo para ver lo que se escribe */
+  function campoClave(id, atributos) {
+    return '<span class="clave"><input type="password" id="' + id + '" ' + (atributos || '') + '><button type="button" data-ojo="' + id + '" aria-label="Mostrar contraseña" aria-pressed="false">' + OJO + '</button></span>';
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('[data-ojo]');
+    if (!b) return;
+    var inp = document.getElementById(b.getAttribute('data-ojo')); if (!inp) return;
+    var ver = inp.type === 'password';
+    inp.type = ver ? 'text' : 'password';
+    b.innerHTML = ver ? OJO_NO : OJO;
+    b.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    b.setAttribute('aria-pressed', ver ? 'true' : 'false');
+    inp.focus();
+  });
   function b64aBytes(b64) { var bin = atob(b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
   function bytesAB64(bytes) { var s = '', paso = 0x8000; for (var i = 0; i < bytes.length; i += paso) s += String.fromCharCode.apply(null, bytes.subarray(i, i + paso)); return btoa(s); }
   function nombrePest(clave) { var p = pestanas().find(function (x) { return x.clave === clave; }); return p ? p.nombre : clave; }
@@ -83,7 +100,7 @@
       '<img src="logo.jpg" alt="Agua Potable Lagos de Moreno">' +
       '<div style="text-align:center"><b>DEPARTAMENTO DE AGUA POTABLE Y ALCANTARILLADO</b><br><span class="muted">FORMATO ÚNICO DE HORAS EXTRAS</span></div>' +
       '<label class="col"><span class="etq">USUARIO</span><input type="text" id="lU" autocomplete="username" autocapitalize="none" required></label>' +
-      '<label class="col"><span class="etq">CONTRASEÑA</span><input type="password" id="lC" autocomplete="current-password" required></label>' +
+      '<label class="col"><span class="etq">CONTRASEÑA</span>' + campoClave('lC', 'autocomplete="current-password" required') + '</label>' +
       '<div class="error" id="lE">' + h(msg || '') + '</div>' +
       '<button class="btn pri" type="submit">Entrar</button></form></div>';
     $('#fLogin').onsubmit = function (ev) {
@@ -101,9 +118,9 @@
     var html = '<form class="col" id="fClave">' +
       '<h2 style="margin:0">' + (obligatorio ? 'Crea tu contraseña' : 'Cambiar contraseña') + '</h2>' +
       (obligatorio ? '<p class="muted" style="margin:0">Es tu primer acceso o se restableció tu contraseña. Escribe la temporal y una nueva de al menos 8 caracteres.</p>' : '') +
-      '<label class="col"><span class="etq">CONTRASEÑA ACTUAL</span><input type="password" id="cA" required></label>' +
-      '<label class="col"><span class="etq">NUEVA CONTRASEÑA</span><input type="password" id="cN" minlength="8" required></label>' +
-      '<label class="col"><span class="etq">REPITE LA NUEVA</span><input type="password" id="cR" minlength="8" required></label>' +
+      '<label class="col"><span class="etq">CONTRASEÑA ACTUAL</span>' + campoClave('cA', 'required autocomplete="current-password"') + '</label>' +
+      '<label class="col"><span class="etq">NUEVA CONTRASEÑA</span>' + campoClave('cN', 'minlength="8" required autocomplete="new-password"') + '</label>' +
+      '<label class="col"><span class="etq">REPITE LA NUEVA</span>' + campoClave('cR', 'minlength="8" required autocomplete="new-password"') + '</label>' +
       '<div class="error" id="cE"></div><div class="fila"><button class="btn pri" type="submit">Guardar</button>' + (obligatorio ? '' : '<button class="btn" type="button" id="cX">Cancelar</button>') + '</div></form>';
     if (obligatorio) $('#app').innerHTML = '<div class="login"><div class="tarjeta">' + html + '</div></div>';
     else abrirModal(html);
@@ -169,7 +186,7 @@
       '<input type="date" id="sFecha" value="' + E.lunes + '" aria-label="Ir a la semana de" style="width:160px">' +
       (cerrada ? '<span class="chip gris" title="Marcada por ' + h(cerrada.por) + ' el ' + h(cerrada.en) + '">Cerrada (impresa)</span>' : '<span class="chip ok">Abierta</span>') + '</div>' +
       '<div class="fila"><button class="btn pri" id="sSubir">Subir hojas escaneadas</button><button class="btn" id="sPdf">PDF</button><button class="btn" id="sXls">Excel</button></div></section>' +
-      (listas || espera ? '<div class="tarjeta" style="padding:12px 16px;background:#fff8ec;border-color:#f0d9a8">' +
+      (listas || espera ? '<div class="tarjeta" style="padding:12px 16px;background:#fff7d1;border-color:#ecd27a">' +
         (listas ? '<b>' + listas + ' hoja(s) leída(s) por revisar.</b> <a href="#" id="sIrRev">Revisar ahora</a> ' : '') +
         (espera ? '<span class="muted">' + espera + ' en espera de lectura (se reintenta sola).</span>' : '') + '</div>' : '') +
       '<div class="tabs" role="tablist">' + tabs.map(function (t) {
@@ -232,7 +249,7 @@
       '<div class="tarjeta"><div class="fila entre"><h3 style="margin:0">Fotos de evidencia (solo van al Excel)</h3><label class="btn chico">+ Agregar fotos<input type="file" id="fFotos" accept="image/*" multiple hidden></label></div>' +
       '<div class="fotos" id="listaFotos" style="margin-top:10px"></div></div>' +
       '<div class="tarjeta"><h3>Firmas del formato</h3><div class="grid2" style="font-size:13px">' + (d.firmantes || []).map(function (f) {
-        return '<div style="background:#f6f9fc;border-radius:8px;padding:10px"><div class="muted">' + h(f.etiqueta) + '</div><b>' + h(f.nombre) + '</b><div class="muted">' + h(f.puesto) + '</div></div>';
+        return '<div style="background:#faf6f1;border-radius:8px;padding:10px"><div class="muted">' + h(f.etiqueta) + '</div><b>' + h(f.nombre) + '</b><div class="muted">' + h(f.puesto) + '</div></div>';
       }).join('') + '</div><div class="fila" style="margin-top:12px"><button class="btn osc" id="bCerrar"></button><span class="muted">Solo marca la semana como impresa; se puede seguir editando.</span></div></div></section>';
     $('#sCont').innerHTML = html;
     var cerrada = estadoCerrada(d, E.lunes);
@@ -837,7 +854,7 @@
   function cfgFirmantes() {
     var f = E.cat.firmantes.slice(); while (f.length < 4) f.push({ etiqueta: '', nombre: '', puesto: '', puesto2: '' });
     $('#cCont').innerHTML = '<section class="tarjeta"><h2>Firmantes del formato</h2><div class="grid2">' + f.map(function (x, i) {
-      return '<div class="col" style="background:#f6f9fc;border-radius:8px;padding:12px"><label class="col"><span class="etq">ETIQUETA</span><input type="text" data-f="' + i + '" data-k="etiqueta" value="' + h(x.etiqueta) + '"></label>' +
+      return '<div class="col" style="background:#faf6f1;border-radius:8px;padding:12px"><label class="col"><span class="etq">ETIQUETA</span><input type="text" data-f="' + i + '" data-k="etiqueta" value="' + h(x.etiqueta) + '"></label>' +
         '<label class="col"><span class="etq">NOMBRE</span><input type="text" data-f="' + i + '" data-k="nombre" value="' + h(x.nombre) + '"></label>' +
         '<label class="col"><span class="etq">PUESTO</span><input type="text" data-f="' + i + '" data-k="puesto" value="' + h(x.puesto) + '"></label>' +
         '<label class="col"><span class="etq">SEGUNDO RENGLÓN DEL PUESTO (opcional)</span><input type="text" data-f="' + i + '" data-k="puesto2" value="' + h(x.puesto2 || '') + '"></label></div>';

@@ -223,7 +223,7 @@
   }
 
   // ---------- Gráficas SVG (para la pantalla y el PDF) ----------
-  var COLORES = ['#1d5fa8', '#e07b00', '#2f8f5b', '#8a4fbf', '#c23b5e', '#3aa0b8', '#7a6a2e', '#5b6b7a'];
+  var COLORES = ['#F7890C', '#1d5fa8', '#2f8f5b', '#8a4fbf', '#c23b5e', '#3aa0b8', '#7a6a2e', '#5b6b7a'];
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
   function svgBarrasH(items, ancho) {
     ancho = ancho || 520; var alto = items.length * 20 + 8, max = Math.max.apply(null, items.map(function (i) { return i.v; }).concat([1]));
@@ -240,7 +240,7 @@
     ancho = ancho || 520; alto = alto || 200;
     var max = Math.max.apply(null, items.map(function (i) { return i.v; }).concat([1])), n = Math.max(items.length, 1), paso = (ancho - 20) / n, base = alto - 24;
     var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + ancho + '" height="' + alto + '" viewBox="0 0 ' + ancho + ' ' + alto + '">';
-    s += '<line x1="10" y1="' + base + '" x2="' + (ancho - 10) + '" y2="' + base + '" stroke="#9fb4c8" stroke-width="1"/>';
+    s += '<line x1="10" y1="' + base + '" x2="' + (ancho - 10) + '" y2="' + base + '" stroke="#d9b48f" stroke-width="1"/>';
     items.forEach(function (it, k) {
       var h = Math.round((base - 20) * it.v / max), x = 10 + k * paso + paso * 0.15, w = paso * 0.7;
       s += '<rect x="' + x.toFixed(1) + '" y="' + (base - h) + '" width="' + w.toFixed(1) + '" height="' + Math.max(h, 0) + '" rx="2" fill="' + (it.c || COLORES[0]) + '"/>';
@@ -254,7 +254,7 @@
     var tot = meses.map(function (m) { return pestanas.reduce(function (a, p) { return a + (m.v[p.clave] || 0); }, 0); });
     var max = Math.max.apply(null, tot.concat([1])), n = Math.max(meses.length, 1), paso = (ancho - 20) / n, base = alto - 24;
     var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + ancho + '" height="' + alto + '" viewBox="0 0 ' + ancho + ' ' + alto + '">';
-    s += '<line x1="10" y1="' + base + '" x2="' + (ancho - 10) + '" y2="' + base + '" stroke="#9fb4c8" stroke-width="1"/>';
+    s += '<line x1="10" y1="' + base + '" x2="' + (ancho - 10) + '" y2="' + base + '" stroke="#d9b48f" stroke-width="1"/>';
     meses.forEach(function (m, k) {
       var x = 10 + k * paso + paso * 0.15, w = paso * 0.7, y = base;
       pestanas.forEach(function (p, j) {
@@ -278,13 +278,13 @@
     var leyenda = { columns: pest.map(function (p, j) { return { text: [{ text: '■ ', color: COLORES[j % COLORES.length] }, { text: p.nombre }], fontSize: 7 }; }), margin: [0, 2, 0, 8] };
     var semanas = Object.keys(r.porSemana).sort().map(function (s) { return { l: s.slice(8) + '/' + s.slice(5, 7), v: r.porSemana[s] }; });
     var top = r.porEmpleado.slice(0, 10);
-    var kpi = function (t, v) { return { stack: [{ text: t, fontSize: 8, color: '#4f5f6f' }, { text: String(v), fontSize: 18, bold: true, color: '#13426f' }], margin: [0, 0, 0, 6] }; };
+    var kpi = function (t, v) { return { stack: [{ text: t, fontSize: 8, color: '#4f5f6f' }, { text: String(v), fontSize: 18, bold: true, color: '#9A4A00' }], margin: [0, 0, 0, 6] }; };
     var porPestTabla = [[{ text: 'Pestaña', bold: true }, { text: 'Horas', bold: true, alignment: 'right' }, { text: '%', bold: true, alignment: 'right' }]]
       .concat(pest.map(function (p) { var v = r.porPestana[p.clave] || 0; return [p.nombre, { text: String(v), alignment: 'right' }, { text: r.total ? (100 * v / r.total).toFixed(1) + '%' : '0%', alignment: 'right' }]; }))
       .concat([[{ text: 'Total', bold: true }, { text: String(r.total), bold: true, alignment: 'right' }, { text: '100%', alignment: 'right' }]]);
     var content = [
       { columns: [
-        { width: '*', stack: [{ text: 'REPORTE HISTÓRICO DE HORAS EXTRAS', bold: true, fontSize: 14, color: '#13426f' },
+        { width: '*', stack: [{ text: 'REPORTE HISTÓRICO DE HORAS EXTRAS', bold: true, fontSize: 14, color: '#9A4A00' },
           { text: (datos.parametros || {}).DEPENDENCIA || '', fontSize: 9 }, { text: titulo_ + ' · del ' + dmy(desde) + ' al ' + dmy(hasta), fontSize: 9, margin: [0, 2, 0, 0] }] },
         opciones.logo ? { width: 130, image: opciones.logo, fit: [130, 60], alignment: 'right' } : { width: 1, text: '' }
       ] },
