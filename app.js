@@ -381,7 +381,15 @@
       var pdfs = files.filter(function (f) { return /pdf/i.test(f.type) || /\.pdf$/i.test(f.name); });
       var imgs = files.filter(function (f) { return /^image\//.test(f.type); });
       var trabajos = [];
-      pdfs.forEach(function (f) { trabajos.push(f.arrayBuffer().then(function (b) { return { nombre: f.name, doc: PDFLib.PDFDocument.load(b, { ignoreEncryption: true }) }; })); });
+      pdfs.forEach(function (f) {
+        trabajos.push(f.arrayBuffer().then(function (b) {
+          return PDFLib.PDFDocument.load(b, { ignoreEncryption: true }).then(function (d) {
+            // PDF pesado (fotos de celular a resolución completa): se convierte a imágenes más ligeras
+            if (b.byteLength / Math.max(1, d.getPageCount()) > 900 * 1024) { txt('Aligerando ' + f.name + '…'); return { nombre: f.name, doc: aligerarPdf(b, PDFLib) }; }
+            return { nombre: f.name, doc: Promise.resolve(d) };
+          });
+        }));
+      });
       if (imgs.length) {
         trabajos.push(PDFLib.PDFDocument.create().then(function (doc) {
           return imgs.reduce(function (p, f) {
@@ -411,10 +419,42 @@
               return nuevo.copyPages(b.doc, idx).then(function (pgs) { pgs.forEach(function (pg) { nuevo.addPage(pg); }); return nuevo.save(); });
             }).then(function (bytes) {
               return api('subirBloque', b.nombre, b.desde + 1, b.hasta - b.desde, bytesAB64(bytes), b.lote);
-            }).then(function (r) { tot.leidas += r.leidas; tot.espera += r.espera; if (r.mensaje) tot.mensaje = r.mensaje; });
+            }).then(function (sub) {
+              // La lectura va aparte: si tarda o falla, las hojas ya están guardadas y quedan "En espera"
+              return api('leerBloque', sub.fileId).then(function (r) {
+                tot.leidas += r.leidas; tot.espera += r.espera; if (r.mensaje) tot.mensaje = r.mensaje;
+              }).catch(function () {
+                tot.espera += sub.paginas; tot.mensaje = 'La lectura tardó demasiado; esas hojas quedaron "En espera" y se leerán solas en unos minutos.';
+              });
+            });
           });
         }, Promise.resolve()).then(function () { $('#uBar').style.width = '100%'; return tot; });
       });
+    });
+  }
+
+  /** Convierte cada página de un PDF pesado en una imagen JPEG de ~1800 px y arma un PDF ligero. */
+  function aligerarPdf(bytes, PDFLib) {
+    return cargarScript(CDN.pdfjs).then(function () {
+      var pdfjsLib = window.pdfjsLib; pdfjsLib.GlobalWorkerOptions.workerSrc = CDN.pdfjsWorker;
+      return Promise.all([pdfjsLib.getDocument({ data: new Uint8Array(bytes.slice(0)) }).promise, PDFLib.PDFDocument.create()]);
+    }).then(function (r) {
+      var origen = r[0], nuevo = r[1], n = origen.numPages, i = 0;
+      var sig = function () {
+        if (++i > n) return Promise.resolve(nuevo);
+        return origen.getPage(i).then(function (pg) {
+          var base = pg.getViewport({ scale: 1 }), esc = 1800 / Math.max(base.width, base.height);
+          var vp = pg.getViewport({ scale: esc }), c = document.createElement('canvas');
+          c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+          return pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise.then(function () {
+            return nuevo.embedJpg(b64aBytes(c.toDataURL('image/jpeg', 0.8).split(',')[1]));
+          }).then(function (im) {
+            var p = nuevo.addPage([base.width, base.height]);
+            p.drawImage(im, { x: 0, y: 0, width: base.width, height: base.height });
+          }).then(sig);
+        });
+      };
+      return sig();
     });
   }
 
@@ -453,9 +493,12 @@
         var est = b.getAttribute('data-est'), id = b.getAttribute('data-pag');
         if (est === 'LISTA') return abrirRevision(id);
         var p = E.pend.find(function (x) { return x.id === id; });
-        if (confirm((p.mensaje || 'Esta hoja aún no se lee.') + '\n\n¿Intentar leerla ahora?')) {
-          aviso('Leyendo…', 60000);
-          api('reintentarPagina', id).then(function (r) { aviso(r.ok ? 'Leída.' : (r.mensaje || 'Sigue en espera.')); vistaRevisar(); }).catch(fallo);
+        if (confirm((p.mensaje || 'Esta hoja aún no se lee.') + '\n\n¿Intentar leerla ahora?\n(Cancelar = otras opciones)')) {
+          aviso('Leyendo… puede tardar hasta 2 minutos.', 120000);
+          api('reintentarPagina', id).then(function (r) { aviso(r.ok ? 'Leída.' : (r.mensaje || 'Sigue en espera.')); vistaRevisar(); })
+            .catch(function () { aviso('La lectura tardó demasiado; la hoja sigue en espera y se leerá sola.', 6000); vistaRevisar(); });
+        } else if (confirm('¿Descartar esta hoja? (por ejemplo, si la vas a subir de nuevo)')) {
+          api('descartarPagina', id).then(function () { aviso('Hoja descartada.'); vistaRevisar(); }).catch(fallo);
         }
       };
     });
