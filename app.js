@@ -466,7 +466,7 @@
     var cargar = id ? api('paginaRevision', id) : Promise.resolve({ id: '', archivo: '', pagina: '', pdf: '', propuesta: { fecha: '', renglones: [{ no: '', horas: null, avisos: [] }], trabajos: [], lugares: [], lugarTexto: '', avisos: [], pestana: '', razonPestana: 'Captura manual: elige la pestaña.', elegirPestana: true, totalEscrito: null } });
     marco('<div class="muted">Abriendo hoja…</div>');
     cargar.then(function (r) {
-      E.revision = r; E.zoom = 1;
+      E.revision = r; E.zoom = 1; E.giro = 0;
       r.propuesta.renglones.forEach(function (x) { x.avisos = x.avisos || []; });
       if (r.propuesta.elegirPestana) { r.sugerida = r.propuesta.pestana; r.propuesta.pestana = ''; }
       pintarRevision();
@@ -480,7 +480,7 @@
     var html = '<section class="tarjeta" style="padding:12px 16px">' + chipsPaginas(r.id) + '</section>' +
       '<div class="rev">' +
       '<section class="tarjeta rev-img">' + (r.pdf ? '<div class="fila entre" style="margin-bottom:8px"><h2 style="margin:0;font-size:15px">' + h(r.archivo) + ' · página ' + r.pagina + '</h2>' +
-        '<div class="fila"><button class="icono" id="zM" aria-label="Alejar">−</button><button class="icono" id="zP" aria-label="Acercar">+</button></div></div><div class="visor" id="visor"><canvas id="lienzo"></canvas></div>'
+        '<div class="fila"><button class="icono" id="zI" aria-label="Girar a la izquierda" title="Girar a la izquierda">↺</button><button class="icono" id="zG" aria-label="Girar a la derecha" title="Girar a la derecha">↻</button><button class="icono" id="zM" aria-label="Alejar">−</button><button class="icono" id="zP" aria-label="Acercar">+</button></div></div><div class="visor" id="visor"><canvas id="lienzo"></canvas></div>'
         : '<h2 style="font-size:15px">Captura manual</h2><p class="muted">Escribe los datos de la hoja. Sirve si una hoja no se puede leer o si Gemini no está disponible.</p>') + '</section>' +
       '<section class="rev-form">' +
       '<div class="tarjeta grid2">' +
@@ -509,6 +509,7 @@
     marco(html);
     enlazarChips();
     if (r.pdf) dibujarPagina();
+    if ($('#zG')) { $('#zG').onclick = function () { E.giro = ((E.giro || 0) + 90) % 360; dibujarPagina(); }; $('#zI').onclick = function () { E.giro = ((E.giro || 0) + 270) % 360; dibujarPagina(); }; }
     if ($('#zM')) { $('#zM').onclick = function () { E.zoom = Math.max(0.5, E.zoom - 0.25); dibujarPagina(); }; $('#zP').onclick = function () { E.zoom = Math.min(3, E.zoom + 0.25); dibujarPagina(); }; }
     $('#rFecha').onchange = function () {
       var vieja = p.fecha; p.fecha = this.value;
@@ -574,8 +575,9 @@
       var p = r._doc ? Promise.resolve(r._doc) : pdfjsLib.getDocument({ data: b64aBytes(r.pdf) }).promise.then(function (d) { r._doc = d; return d; });
       return p.then(function (doc) { return doc.getPage(r.pagEnBloque); }).then(function (pg) {
         var visor = $('#visor'); if (!visor) return;
-        var base = pg.getViewport({ scale: 1 }), esc = (visor.clientWidth - 4) / base.width * E.zoom;
-        var vp = pg.getViewport({ scale: esc * (window.devicePixelRatio || 1) }), c = $('#lienzo');
+        var giro = ((pg.rotate || 0) + (E.giro || 0)) % 360;
+        var base = pg.getViewport({ scale: 1, rotation: giro }), esc = (visor.clientWidth - 4) / base.width * E.zoom;
+        var vp = pg.getViewport({ scale: esc * (window.devicePixelRatio || 1), rotation: giro }), c = $('#lienzo');
         c.width = vp.width; c.height = vp.height; c.style.width = (vp.width / (window.devicePixelRatio || 1)) + 'px';
         return pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
       });
